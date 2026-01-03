@@ -491,6 +491,15 @@ function renderSettlementScreen() {
         </table>
     </div>`;
 
+    // Share Button
+    html += `
+        <div class="share-section mb-lg">
+            <button id="btn-share-results" class="btn btn-primary btn-block">
+                Share Results
+            </button>
+        </div>
+    `;
+
     // Payment Instructions Section
     if (transactions.length === 0) {
         html += '<h3 class="mb-md">Settlement</h3>';
@@ -524,8 +533,113 @@ function renderSettlementScreen() {
 
     container.innerHTML = html;
 
-    // Add event listener
+    // Add event listeners
     document.getElementById('btn-new-session').addEventListener('click', handleNewSession);
+    document.getElementById('btn-share-results').addEventListener('click', () => handleShareResults(transactions));
+}
+
+// ===== SHARE FUNCTIONALITY =====
+function handleShareResults(transactions) {
+    const shareText = generateShareText(transactions);
+
+    // Try Web Share API first (mobile)
+    if (navigator.share) {
+        navigator.share({
+            title: 'Poker Night Settlement',
+            text: shareText
+        })
+        .then(() => {
+            showNotification('Results shared successfully!');
+        })
+        .catch((error) => {
+            // User cancelled or error occurred
+            if (error.name !== 'AbortError') {
+                // Fallback to clipboard
+                copyToClipboard(shareText);
+            }
+        });
+    } else {
+        // Fallback to clipboard for desktop
+        copyToClipboard(shareText);
+    }
+}
+
+function generateShareText(transactions) {
+    const totalPot = appState.players.reduce((sum, p) => sum + p.totalBuyIn, 0);
+    const date = new Date().toLocaleDateString();
+
+    let text = `Poker Night Settlement - ${date}\n\n`;
+
+    // Player Summary
+    text += 'Player Summary:\n';
+    text += '----------------------------------------\n';
+    appState.players.forEach(player => {
+        const netSymbol = player.netPosition > 0 ? '+' : '';
+        text += `${player.name}\n`;
+        text += `  Buy-in: Rs.${player.totalBuyIn}\n`;
+        text += `  Final: Rs.${player.finalCash.toFixed(2)}\n`;
+        text += `  Net: ${netSymbol}Rs.${player.netPosition.toFixed(2)}\n\n`;
+    });
+
+    text += '----------------------------------------\n';
+    text += `Total Pot: Rs.${totalPot}\n\n`;
+
+    // Payment Instructions
+    if (transactions.length === 0) {
+        text += 'Everyone is even! No payments needed.\n';
+    } else {
+        text += 'Payment Instructions:\n';
+        transactions.forEach((transaction, index) => {
+            text += `${index + 1}. ${transaction.from} pays ${transaction.to} Rs.${transaction.amount}\n`;
+        });
+    }
+
+    return text;
+}
+
+function copyToClipboard(text) {
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(text)
+            .then(() => {
+                showNotification('Results copied to clipboard!');
+            })
+            .catch(() => {
+                // Fallback for older browsers
+                fallbackCopyToClipboard(text);
+            });
+    } else {
+        fallbackCopyToClipboard(text);
+    }
+}
+
+function fallbackCopyToClipboard(text) {
+    const textArea = document.createElement('textarea');
+    textArea.value = text;
+    textArea.style.position = 'fixed';
+    textArea.style.left = '-9999px';
+    document.body.appendChild(textArea);
+    textArea.focus();
+    textArea.select();
+
+    try {
+        document.execCommand('copy');
+        showNotification('Results copied to clipboard!');
+    } catch (err) {
+        showNotification('Failed to copy. Please try again.');
+    }
+
+    document.body.removeChild(textArea);
+}
+
+function showNotification(message) {
+    const notification = document.createElement('div');
+    notification.className = 'notification';
+    notification.innerHTML = `<p>${message}</p>`;
+    document.body.appendChild(notification);
+
+    setTimeout(() => {
+        notification.remove();
+    }, 3000);
 }
 
 function handleNewSession() {
