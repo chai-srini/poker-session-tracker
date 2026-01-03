@@ -468,6 +468,28 @@ input[type="number"]:disabled {
     }
 }
 
+/* === Button Group === */
+.button-group {
+    display: flex;
+    gap: var(--spacing-md);
+    flex-wrap: wrap;
+}
+
+.button-group .btn {
+    flex: 1;
+    min-width: 150px;
+}
+
+@media (max-width: 480px) {
+    .button-group {
+        flex-direction: column;
+    }
+
+    .button-group .btn {
+        width: 100%;
+    }
+}
+
 /* === Transaction Cards === */
 .transaction-list {
     margin-top: var(--spacing-md);

@@ -491,15 +491,6 @@ function renderSettlementScreen() {
         </table>
     </div>`;
 
-    // Share Button
-    html += `
-        <div class="share-section mb-lg">
-            <button id="btn-share-results" class="btn btn-primary btn-block">
-                Share Results
-            </button>
-        </div>
-    `;
-
     // Payment Instructions Section
     if (transactions.length === 0) {
         html += '<h3 class="mb-md">Settlement</h3>';
@@ -526,9 +517,14 @@ function renderSettlementScreen() {
 
     html += `
         </div>
-        <button id="btn-new-session" class="btn btn-secondary btn-block mt-lg">
-            New Session
-        </button>
+        <div class="button-group mt-lg">
+            <button id="btn-share-results" class="btn btn-primary">
+                Share Results
+            </button>
+            <button id="btn-new-session" class="btn btn-secondary">
+                New Session
+            </button>
+        </div>
     `;
 
     container.innerHTML = html;
