@@ -406,6 +406,68 @@ input[type="number"]:disabled {
     border-left: 4px solid var(--primary-color);
 }
 
+/* === Player Summary Table === */
+.player-summary-table {
+    overflow-x: auto;
+}
+
+.summary-table {
+    width: 100%;
+    border-collapse: collapse;
+    background-color: var(--bg-card);
+    border-radius: var(--radius-md);
+    overflow: hidden;
+    box-shadow: var(--shadow-sm);
+}
+
+.summary-table thead {
+    background-color: var(--primary-color);
+    color: var(--text-light);
+}
+
+.summary-table th {
+    padding: var(--spacing-md);
+    text-align: left;
+    font-weight: var(--font-weight-bold);
+    font-size: var(--font-size-sm);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.summary-table tbody tr {
+    border-bottom: 1px solid var(--border-color);
+}
+
+.summary-table tbody tr:last-child {
+    border-bottom: none;
+}
+
+.summary-table tbody tr:hover {
+    background-color: var(--bg-secondary);
+}
+
+.summary-table td {
+    padding: var(--spacing-md);
+    font-size: var(--font-size-base);
+}
+
+.summary-table .player-name-cell {
+    font-weight: var(--font-weight-medium);
+}
+
+/* Make table responsive on small screens */
+@media (max-width: 480px) {
+    .summary-table th,
+    .summary-table td {
+        padding: var(--spacing-sm);
+        font-size: var(--font-size-sm);
+    }
+
+    .summary-table th {
+        font-size: 0.75rem;
+    }
+}
+
 /* === Transaction Cards === */
 .transaction-list {
     margin-top: var(--spacing-md);

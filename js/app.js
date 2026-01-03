@@ -457,7 +457,43 @@ function renderSettlementScreen() {
 
     let html = '<div class="settlement-results">';
 
+    // Player Summary Section
+    html += '<h3 class="mb-md">Player Summary</h3>';
+    html += '<div class="player-summary-table mb-xl">';
+    html += `
+        <table class="summary-table">
+            <thead>
+                <tr>
+                    <th>Player</th>
+                    <th>Buy-in</th>
+                    <th>Final</th>
+                    <th>Net</th>
+                </tr>
+            </thead>
+            <tbody>
+    `;
+
+    appState.players.forEach(player => {
+        const netClass = player.netPosition > 0 ? 'text-success' : player.netPosition < 0 ? 'text-error' : '';
+        const netSymbol = player.netPosition > 0 ? '+' : '';
+        html += `
+            <tr>
+                <td class="player-name-cell">${player.name}</td>
+                <td>₹${player.totalBuyIn}</td>
+                <td>₹${player.finalCash.toFixed(2)}</td>
+                <td class="${netClass}">${netSymbol}₹${player.netPosition.toFixed(2)}</td>
+            </tr>
+        `;
+    });
+
+    html += `
+            </tbody>
+        </table>
+    </div>`;
+
+    // Payment Instructions Section
     if (transactions.length === 0) {
+        html += '<h3 class="mb-md">Settlement</h3>';
         html += '<p class="text-center text-success">Everyone is even! No payments needed.</p>';
     } else {
         html += '<h3 class="mb-md">Payment Instructions</h3>';
