@@ -617,26 +617,30 @@ function generateShareText(transactions) {
     const chipValue = totalPot / totalChips;
     const date = new Date().toLocaleDateString();
 
-    let text = `Poker Night Settlement - ${date}\n\n`;
-    text += `Buy-in: Rs.${appState.buyInAmount} = ${appState.startingStack} chips\n`;
-    text += `Chip Value: Rs.${chipValue.toFixed(4)}/chip\n\n`;
+    let text = `Poker Night Settlement - ${date}\n`;
+    text += `Buy-in: Rs.${appState.buyInAmount} = ${appState.startingStack} chips | Chip Value: Rs.${chipValue.toFixed(4)}/chip\n\n`;
 
     // Player Summary
     text += 'Player Summary:\n';
-    text += '----------------------------------------\n';
     appState.players.forEach(player => {
         const startChips = player.buyIns * appState.startingStack;
         const finalChips = Math.round(player.finalCash / chipValue);
-        const netSymbol = player.netPosition > 0 ? '+' : '';
 
-        text += `${player.name}\n`;
-        text += `  Chips: ${startChips} → ${finalChips}\n`;
-        text += `  Buy-in: Rs.${player.totalBuyIn}\n`;
-        text += `  Final: Rs.${player.finalCash.toFixed(2)}\n`;
-        text += `  Net: ${netSymbol}Rs.${player.netPosition.toFixed(2)}\n\n`;
+        // Format numbers: remove .00 if present
+        const formatMoney = (num) => {
+            const rounded = Math.round(num * 100) / 100;
+            return rounded % 1 === 0 ? rounded.toString() : rounded.toFixed(2);
+        };
+
+        const buyInStr = formatMoney(player.totalBuyIn);
+        const finalStr = formatMoney(player.finalCash);
+        const netStr = formatMoney(Math.abs(player.netPosition));
+        const netSign = player.netPosition > 0 ? '+' : player.netPosition < 0 ? '-' : '';
+
+        text += `${player.name}: Chips → Final | Buy-in → Final | Net\n`;
+        text += `${startChips} → ${finalChips} | Rs.${buyInStr} → Rs.${finalStr} | ${netSign}Rs.${netStr}\n\n`;
     });
 
-    text += '----------------------------------------\n';
     text += `Total Pot: Rs.${totalPot} (${totalChips} chips)\n\n`;
 
     // Payment Instructions
