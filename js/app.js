@@ -8,6 +8,7 @@ const appState = {
     currentScreen: 'setup',
     buyInAmount: 200,
     startingStack: 400,
+    currencySymbol: '$',
     players: [],
     // players structure: [{ name: '', buyIns: 0, totalBuyIn: 0, finalCash: 0, netPosition: 0 }]
 };
@@ -29,6 +30,7 @@ function initializeApp() {
         appState.currentScreen = savedSession.currentScreen;
         appState.buyInAmount = savedSession.buyInAmount || 200;
         appState.startingStack = savedSession.startingStack || 400;
+        appState.currencySymbol = savedSession.currencySymbol || '$';
         appState.players = savedSession.players;
 
         // Show appropriate screen
@@ -94,7 +96,7 @@ function showScreen(screenName) {
 }
 
 // ===== CHECKPOINT 3: PLAYER SETUP SCREEN =====
-function renderSetupScreen() {
+function renderSetupScreen(retainedPlayerNames = null) {
     const container = document.getElementById('setup-content');
 
     container.innerHTML = `
@@ -110,6 +112,18 @@ function renderSetupScreen() {
         </div>
 
         <div class="form-group">
+            <label for="currency-symbol">Currency Symbol</label>
+            <input
+                type="text"
+                id="currency-symbol"
+                value="${appState.currencySymbol}"
+                maxlength="5"
+                placeholder="Enter currency symbol (e.g., $, €, £)"
+            >
+            <p class="text-muted">Symbol to use for buy-in amounts (default: $)</p>
+        </div>
+
+        <div class="form-group">
             <label for="chips-per-buyin">Chips per Buy-in</label>
             <input
                 type="number"
@@ -119,7 +133,7 @@ function renderSetupScreen() {
                 step="1"
                 placeholder="Enter starting stack"
             >
-            <p class="text-muted">Example: ₹200 buy-in = 400 chips (2:1 ratio)</p>
+            <p class="text-muted">Example: 200 buy-in = 400 chips (2:1 ratio)</p>
         </div>
 
         <button id="btn-start-game" class="btn btn-primary btn-block" disabled>
@@ -128,7 +142,7 @@ function renderSetupScreen() {
     `;
 
     // Initialize setup players and generate inputs
-    initializeSetupPlayers();
+    initializeSetupPlayers(retainedPlayerNames);
     generatePlayerInputs();
 
     // Add event listeners
@@ -139,6 +153,11 @@ function renderSetupScreen() {
     if (btnAddPlayerSetup) {
         btnAddPlayerSetup.addEventListener('click', handleAddPlayerSetup);
     }
+
+    const currencyInput = document.getElementById('currency-symbol');
+    currencyInput.addEventListener('input', (e) => {
+        appState.currencySymbol = e.target.value.trim() || '$';
+    });
 }
 
 function generatePlayerInputs() {
@@ -191,8 +210,14 @@ function generatePlayerInputs() {
 }
 
 // ===== SETUP PLAYER MANAGEMENT FUNCTIONS =====
-function initializeSetupPlayers() {
-    setupPlayers = [{ name: '' }]; // Start with 1 empty player
+function initializeSetupPlayers(retainedPlayerNames = null) {
+    if (retainedPlayerNames && retainedPlayerNames.length > 0) {
+        // Use retained player names
+        setupPlayers = retainedPlayerNames.map(name => ({ name }));
+    } else {
+        // Default: start with 1 empty player
+        setupPlayers = [{ name: '' }];
+    }
 }
 
 function handlePlayerNameInput(event) {
@@ -279,7 +304,7 @@ function handleStartGame() {
         .filter(p => p.name.trim() !== '') // Filter out any empty names
         .map(p => ({
             name: p.name.trim(),
-            buyIns: 0,
+            buyIns: 1,
             totalBuyIn: 0,
             finalCash: 0,
             netPosition: 0
@@ -302,7 +327,7 @@ function renderBuyInScreen() {
 
     let html = `
         <div class="form-group">
-            <label for="buyin-amount">Buy-in Amount (INR)</label>
+            <label for="buyin-amount">Buy-in Amount</label>
             <input
                 type="number"
                 id="buyin-amount"
@@ -313,7 +338,7 @@ function renderBuyInScreen() {
         </div>
 
         <div class="total-pot mb-lg">
-            <h3>Total Pot: <span id="total-pot">₹0</span></h3>
+            <h3>Total Pot: <span id="total-pot">${appState.currencySymbol}0</span></h3>
             <p>Total Chips: <span id="total-chips">0</span></p>
         </div>
 
@@ -327,7 +352,7 @@ function renderBuyInScreen() {
                     <h4 class="player-name">${player.name}</h4>
                     <p class="player-buyin">Buy-ins: <span id="buyin-count-${index}">${player.buyIns}</span></p>
                     <p class="player-total">
-                        Total: <span id="buyin-total-${index}">₹${player.totalBuyIn}</span>
+                        Total: <span id="buyin-total-${index}">${appState.currencySymbol}${player.totalBuyIn}</span>
                         <span class="chip-info">(<span id="chip-total-${index}">0</span> chips)</span>
                     </p>
                 </div>
@@ -459,11 +484,11 @@ function updateBuyInTotals() {
 
         // Update UI
         document.getElementById(`buyin-count-${index}`).textContent = player.buyIns;
-        document.getElementById(`buyin-total-${index}`).textContent = `₹${player.totalBuyIn}`;
+        document.getElementById(`buyin-total-${index}`).textContent = `${appState.currencySymbol}${player.totalBuyIn}`;
         document.getElementById(`chip-total-${index}`).textContent = playerChips;
     });
 
-    document.getElementById('total-pot').textContent = `₹${totalPot}`;
+    document.getElementById('total-pot').textContent = `${appState.currencySymbol}${totalPot}`;
     document.getElementById('total-chips').textContent = totalChips;
 
     // Save state
@@ -475,13 +500,13 @@ function renderStandingScreen() {
     const container = document.getElementById('standing-content');
     const totalPot = appState.players.reduce((sum, p) => sum + p.totalBuyIn, 0);
     const totalChips = appState.players.reduce((sum, p) => sum + (p.buyIns * appState.startingStack), 0);
-    const chipValue = totalPot / totalChips; // INR per chip
+    const chipValue = totalPot / totalChips; // Currency per chip
 
     let html = `
         <div class="info-box mb-lg">
-            <p><strong>Total Pot:</strong> ₹${totalPot}</p>
+            <p><strong>Total Pot:</strong> ${appState.currencySymbol}${totalPot}</p>
             <p><strong>Total Chips:</strong> ${totalChips}</p>
-            <p><strong>Chip Value:</strong> ₹${chipValue.toFixed(4)} per chip</p>
+            <p><strong>Chip Value:</strong> ${appState.currencySymbol}${chipValue.toFixed(4)} per chip</p>
             <p class="text-muted">Enter final chip count for each player</p>
         </div>
 
@@ -496,7 +521,7 @@ function renderStandingScreen() {
         html += `
             <div class="standing-card">
                 <h4 class="player-name">${player.name}</h4>
-                <p class="text-muted">Started with: ${player.buyIns * appState.startingStack} chips (₹${player.totalBuyIn})</p>
+                <p class="text-muted">Started with: ${player.buyIns * appState.startingStack} chips (${appState.currencySymbol}${player.totalBuyIn})</p>
                 <div class="form-group">
                     <label for="final-chips-${index}">Final Chip Count</label>
                     <input
@@ -511,10 +536,10 @@ function renderStandingScreen() {
                     >
                 </div>
                 <p class="final-inr" id="final-inr-${index}">
-                    Final Value: <span>₹0.00</span>
+                    Final Value: <span>${appState.currencySymbol}0.00</span>
                 </p>
                 <p class="net-position" id="net-position-${index}">
-                    Net: <span>₹0</span>
+                    Net: <span>${appState.currencySymbol}0</span>
                 </p>
             </div>
         `;
@@ -545,24 +570,24 @@ function validateFinalStanding() {
 
     let totalFinalChips = 0;
 
-    // Update player chip counts and convert to INR
+    // Update player chip counts and convert to currency
     appState.players.forEach((player, index) => {
         const input = document.getElementById(`final-chips-${index}`);
         const finalChips = parseInt(input.value) || 0;
 
-        // Convert chips to INR
+        // Convert chips to currency
         player.finalCash = finalChips * chipValue;
         player.netPosition = player.finalCash - player.totalBuyIn;
         totalFinalChips += finalChips;
 
-        // Update final INR display
+        // Update final currency display
         const finalInrSpan = document.querySelector(`#final-inr-${index} span`);
-        finalInrSpan.textContent = `₹${player.finalCash.toFixed(2)}`;
+        finalInrSpan.textContent = `${appState.currencySymbol}${player.finalCash.toFixed(2)}`;
 
         // Update net position display
         const netSpan = document.querySelector(`#net-position-${index} span`);
         const netValue = player.netPosition;
-        netSpan.textContent = `₹${netValue.toFixed(2)}`;
+        netSpan.textContent = `${appState.currencySymbol}${netValue.toFixed(2)}`;
         netSpan.className = netValue > 0 ? 'text-success' : netValue < 0 ? 'text-error' : '';
     });
 
@@ -621,7 +646,7 @@ function renderSettlementScreen() {
                 <tr>
                     <th>Player</th>
                     <th>Chips</th>
-                    <th>INR Value</th>
+                    <th>Value</th>
                     <th>Net</th>
                 </tr>
             </thead>
@@ -637,8 +662,8 @@ function renderSettlementScreen() {
             <tr>
                 <td class="player-name-cell">${player.name}</td>
                 <td>${startChips} → ${finalChips}</td>
-                <td>₹${player.totalBuyIn} → ₹${player.finalCash.toFixed(2)}</td>
-                <td class="${netClass}">${netSymbol}₹${player.netPosition.toFixed(2)}</td>
+                <td>${appState.currencySymbol}${player.totalBuyIn} → ${appState.currencySymbol}${player.finalCash.toFixed(2)}</td>
+                <td class="${netClass}">${netSymbol}${appState.currencySymbol}${player.netPosition.toFixed(2)}</td>
             </tr>
         `;
     });
@@ -663,7 +688,7 @@ function renderSettlementScreen() {
                     <p class="transaction-detail">
                         <strong>${transaction.from}</strong> pays
                         <strong>${transaction.to}</strong>
-                        <span class="transaction-amount">₹${transaction.amount}</span>
+                        <span class="transaction-amount">${appState.currencySymbol}${transaction.amount}</span>
                     </p>
                 </div>
             `;
@@ -724,7 +749,7 @@ function generateShareText(transactions) {
     const date = new Date().toLocaleDateString();
 
     let text = `Poker Night Settlement - ${date}\n`;
-    text += `Buy-in: Rs.${appState.buyInAmount} = ${appState.startingStack} chips | Chip Value: Rs.${chipValue.toFixed(4)}/chip\n\n`;
+    text += `Buy-in: ${appState.currencySymbol}${appState.buyInAmount} = ${appState.startingStack} chips | Chip Value: ${appState.currencySymbol}${chipValue.toFixed(4)}/chip\n\n`;
 
     // Payment Instructions (moved to top)
     if (transactions.length === 0) {
@@ -732,7 +757,7 @@ function generateShareText(transactions) {
     } else {
         text += 'Payment Instructions:\n';
         transactions.forEach((transaction, index) => {
-            text += `${index + 1}. ${transaction.from} pays ${transaction.to} Rs.${transaction.amount}\n`;
+            text += `${index + 1}. ${transaction.from} pays ${transaction.to} ${appState.currencySymbol}${transaction.amount}\n`;
         });
         text += '\n\n';
     }
@@ -755,10 +780,10 @@ function generateShareText(transactions) {
         const netSign = player.netPosition > 0 ? '+' : player.netPosition < 0 ? '-' : '';
 
         text += `${player.name}: Chips → Final | Buy-in → Final | Net\n`;
-        text += `${startChips} → ${finalChips} | Rs.${buyInStr} → Rs.${finalStr} | ${netSign}Rs.${netStr}\n\n`;
+        text += `${startChips} → ${finalChips} | ${appState.currencySymbol}${buyInStr} → ${appState.currencySymbol}${finalStr} | ${netSign}${appState.currencySymbol}${netStr}\n\n`;
     });
 
-    text += `Total Pot: Rs.${totalPot} (${totalChips} chips)\n`;
+    text += `Total Pot: ${appState.currencySymbol}${totalPot} (${totalChips} chips)\n`;
 
     return text;
 }
@@ -809,6 +834,10 @@ function showNotification(message) {
 }
 
 function handleNewSession() {
+    // CAPTURE players and currency BEFORE clearing
+    const retainedPlayerNames = appState.players.map(p => p.name);
+    const retainedCurrency = appState.currencySymbol;
+
     // Clear saved session
     clearSession();
 
@@ -816,10 +845,11 @@ function handleNewSession() {
     appState.currentScreen = 'setup';
     appState.buyInAmount = 200;
     appState.startingStack = 400;
+    appState.currencySymbol = retainedCurrency; // PRESERVE currency
     appState.players = [];
 
-    // Return to setup screen
-    renderSetupScreen();
+    // Return to setup screen with retained data
+    renderSetupScreen(retainedPlayerNames); // PASS player names
     showScreen('setup');
 }
 
@@ -886,7 +916,7 @@ function handleAddPlayer() {
     // Add player to state
     appState.players.push({
         name: name.trim(),
-        buyIns: 0,
+        buyIns: 1,
         totalBuyIn: 0,
         finalCash: 0,
         netPosition: 0

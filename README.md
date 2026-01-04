@@ -6,7 +6,9 @@ A simple, mobile-friendly web application to track poker game buy-ins and calcul
 
 - Track up to 9 players per poker session
 - Support for multiple buy-ins per player
-- Configurable buy-in amount (default: INR 200)
+- Configurable currency symbol (default: $, supports any currency)
+- Configurable buy-in amount (default: 200)
+- Chip-based tracking with automatic currency conversion
 - Real-time calculation of totals and pot size
 - Automatic validation of final standings
 - Optimal settlement calculation (minimizes number of transactions)
@@ -16,10 +18,10 @@ A simple, mobile-friendly web application to track poker game buy-ins and calcul
 
 ## Usage
 
-1. **Player Setup**: Enter the number of players (1-9) and their names
+1. **Player Setup**: Enter player names, set currency symbol, and configure chips per buy-in
 2. **Buy-in Tracking**: Track each player's buy-ins throughout the night
-3. **Final Standing**: Enter each player's final cash value
-4. **Settlement**: View who owes whom and how much
+3. **Final Standing**: Enter each player's final chip count
+4. **Settlement**: View who owes whom and how much in your chosen currency
 
 ## Local Development
 
