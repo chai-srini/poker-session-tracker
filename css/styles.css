@@ -575,6 +575,40 @@ input[type="number"]:disabled {
     gap: var(--spacing-sm);
 }
 
+/* === Player Input Group (Setup Screen) === */
+.player-input-group {
+    margin-bottom: var(--spacing-lg);
+}
+
+.input-with-remove {
+    display: flex;
+    gap: var(--spacing-sm);
+    align-items: flex-start;
+}
+
+.input-with-remove input {
+    flex: 1;
+}
+
+.btn-remove {
+    background-color: var(--error-color);
+    color: var(--text-light);
+    font-size: var(--font-size-xl);
+    line-height: 1;
+    padding: var(--spacing-sm) var(--spacing-md);
+    min-width: 44px;
+    flex-shrink: 0;
+}
+
+.btn-remove:hover:not(:disabled) {
+    background-color: #c82333;
+}
+
+/* Hide remove button when only 1 player */
+.player-input-group:only-child .btn-remove {
+    display: none;
+}
+
 /* === Responsive Breakpoints === */
 @media (min-width: 768px) {
     .container {

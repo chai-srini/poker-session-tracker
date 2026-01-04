@@ -12,6 +12,9 @@ const appState = {
     // players structure: [{ name: '', buyIns: 0, totalBuyIn: 0, finalCash: 0, netPosition: 0 }]
 };
 
+// Setup Players (temporary array for setup screen only)
+let setupPlayers = [];
+
 // Initialize app on DOM load
 document.addEventListener('DOMContentLoaded', () => {
     initializeApp();
@@ -95,21 +98,15 @@ function renderSetupScreen() {
     const container = document.getElementById('setup-content');
 
     container.innerHTML = `
-        <div class="form-group">
-            <label for="num-players">Number of Players (1-9)</label>
-            <input
-                type="number"
-                id="num-players"
-                min="1"
-                max="9"
-                value="4"
-                placeholder="Enter number of players"
-            >
-            <div id="num-players-error" class="error-message hidden"></div>
-        </div>
-
+        <h3 class="mb-md">Player Names</h3>
         <div id="player-names-container" class="mb-lg">
             <!-- Player name inputs will be generated here -->
+        </div>
+
+        <div class="add-player-section mb-lg">
+            <button id="btn-add-player-setup" class="btn btn-secondary btn-block" type="button">
+                + Add Player
+            </button>
         </div>
 
         <div class="form-group">
@@ -130,64 +127,101 @@ function renderSetupScreen() {
         </button>
     `;
 
-    // Add event listeners
-    const numPlayersInput = document.getElementById('num-players');
-    numPlayersInput.addEventListener('input', handleNumPlayersChange);
+    // Initialize setup players and generate inputs
+    initializeSetupPlayers();
+    generatePlayerInputs();
 
+    // Add event listeners
     const startButton = document.getElementById('btn-start-game');
     startButton.addEventListener('click', handleStartGame);
 
-    // Generate initial player inputs
-    generatePlayerInputs(4);
-}
-
-function handleNumPlayersChange(event) {
-    const num = parseInt(event.target.value);
-    const errorDiv = document.getElementById('num-players-error');
-
-    if (isNaN(num) || num < 1 || num > 9) {
-        errorDiv.textContent = 'Please enter a number between 1 and 9';
-        errorDiv.classList.remove('hidden');
-        document.getElementById('player-names-container').innerHTML = '';
-        document.getElementById('btn-start-game').disabled = true;
-        return;
+    const btnAddPlayerSetup = document.getElementById('btn-add-player-setup');
+    if (btnAddPlayerSetup) {
+        btnAddPlayerSetup.addEventListener('click', handleAddPlayerSetup);
     }
-
-    errorDiv.classList.add('hidden');
-    generatePlayerInputs(num);
 }
 
-function generatePlayerInputs(count) {
+function generatePlayerInputs() {
     const container = document.getElementById('player-names-container');
-    container.innerHTML = '<h3 class="mb-md">Player Names</h3>';
+    container.innerHTML = '';
 
-    for (let i = 0; i < count; i++) {
+    // Render existing player inputs from setupPlayers array
+    setupPlayers.forEach((player, index) => {
         const playerDiv = document.createElement('div');
-        playerDiv.className = 'form-group';
+        playerDiv.className = 'form-group player-input-group';
         playerDiv.innerHTML = `
-            <label for="player-${i}">Player ${i + 1}</label>
-            <input
-                type="text"
-                id="player-${i}"
-                class="player-name-input"
-                placeholder="Enter player name"
-                data-player-index="${i}"
-            >
-            <div id="player-${i}-error" class="error-message hidden"></div>
+            <label for="player-${index}">Player ${index + 1}</label>
+            <div class="input-with-remove">
+                <input
+                    type="text"
+                    id="player-${index}"
+                    class="player-name-input"
+                    placeholder="Enter player name"
+                    value="${player.name}"
+                    data-player-index="${index}"
+                >
+                <button class="btn btn-icon btn-remove" data-remove-index="${index}" type="button">×</button>
+            </div>
+            <div id="player-${index}-error" class="error-message hidden"></div>
         `;
         container.appendChild(playerDiv);
+    });
+
+    // Add event listeners
+    document.querySelectorAll('.player-name-input').forEach(input => {
+        input.addEventListener('input', handlePlayerNameInput);
+    });
+
+    document.querySelectorAll('[data-remove-index]').forEach(btn => {
+        btn.addEventListener('click', handleRemovePlayer);
+    });
+
+    // Update "+ Add Player" button visibility
+    const btnAddPlayerSetup = document.getElementById('btn-add-player-setup');
+    if (btnAddPlayerSetup) {
+        if (setupPlayers.length >= 9) {
+            btnAddPlayerSetup.classList.add('hidden');
+        } else {
+            btnAddPlayerSetup.classList.remove('hidden');
+        }
     }
 
-    // Add event listeners to all player inputs
-    document.querySelectorAll('.player-name-input').forEach(input => {
-        input.addEventListener('input', validatePlayerNames);
-    });
+    // Validate after rendering
+    validateSetupPlayers();
 }
 
-function validatePlayerNames() {
-    const inputs = document.querySelectorAll('.player-name-input');
-    const names = [];
+// ===== SETUP PLAYER MANAGEMENT FUNCTIONS =====
+function initializeSetupPlayers() {
+    setupPlayers = [{ name: '' }]; // Start with 1 empty player
+}
+
+function handlePlayerNameInput(event) {
+    const index = parseInt(event.target.dataset.playerIndex);
+    setupPlayers[index].name = event.target.value;
+    validateSetupPlayers();
+}
+
+function handleAddPlayerSetup() {
+    if (setupPlayers.length >= 9) {
+        return; // Max players reached
+    }
+    setupPlayers.push({ name: '' });
+    generatePlayerInputs();
+}
+
+function handleRemovePlayer(event) {
+    const index = parseInt(event.target.dataset.removeIndex);
+    if (setupPlayers.length <= 1) {
+        return; // Must have at least 1 player
+    }
+    setupPlayers.splice(index, 1);
+    generatePlayerInputs();
+    validateSetupPlayers();
+}
+
+function validateSetupPlayers() {
     let isValid = true;
+    const names = [];
 
     // Clear all error messages first
     document.querySelectorAll('.error-message').forEach(msg => {
@@ -195,52 +229,61 @@ function validatePlayerNames() {
         msg.textContent = '';
     });
 
-    // Collect names and check for empty values
-    inputs.forEach((input, index) => {
-        const name = input.value.trim();
+    // Check each player
+    setupPlayers.forEach((player, index) => {
+        const name = player.name.trim();
 
+        // Check empty name
         if (name === '') {
             const errorDiv = document.getElementById(`player-${index}-error`);
-            errorDiv.textContent = 'Name cannot be empty';
-            errorDiv.classList.remove('hidden');
+            if (errorDiv) {
+                errorDiv.textContent = 'Name cannot be empty';
+                errorDiv.classList.remove('hidden');
+            }
             isValid = false;
         } else {
             names.push({ name, index });
         }
     });
 
-    // Check for duplicate names
+    // Check for duplicates
     const nameSet = new Set();
     names.forEach(({ name, index }) => {
         if (nameSet.has(name.toLowerCase())) {
             const errorDiv = document.getElementById(`player-${index}-error`);
-            errorDiv.textContent = 'This name is already used';
-            errorDiv.classList.remove('hidden');
+            if (errorDiv) {
+                errorDiv.textContent = 'This name is already used';
+                errorDiv.classList.remove('hidden');
+            }
             isValid = false;
         }
         nameSet.add(name.toLowerCase());
     });
 
     // Enable/disable start button
-    document.getElementById('btn-start-game').disabled = !isValid;
+    const startBtn = document.getElementById('btn-start-game');
+    if (startBtn) {
+        startBtn.disabled = !isValid;
+    }
 
     return isValid;
 }
 
 function handleStartGame() {
-    if (!validatePlayerNames()) {
+    if (!validateSetupPlayers()) {
         return;
     }
 
-    // Collect player names
-    const inputs = document.querySelectorAll('.player-name-input');
-    appState.players = Array.from(inputs).map(input => ({
-        name: input.value.trim(),
-        buyIns: 0,
-        totalBuyIn: 0,
-        finalCash: 0,
-        netPosition: 0
-    }));
+    // Convert setupPlayers to appState.players
+    appState.players = setupPlayers
+        .filter(p => p.name.trim() !== '') // Filter out any empty names
+        .map(p => ({
+            name: p.name.trim(),
+            buyIns: 0,
+            totalBuyIn: 0,
+            finalCash: 0,
+            netPosition: 0
+        }));
 
     // Capture starting stack value
     appState.startingStack = parseInt(document.getElementById('chips-per-buyin').value) || 400;
