@@ -620,6 +620,17 @@ function generateShareText(transactions) {
     let text = `Poker Night Settlement - ${date}\n`;
     text += `Buy-in: Rs.${appState.buyInAmount} = ${appState.startingStack} chips | Chip Value: Rs.${chipValue.toFixed(4)}/chip\n\n`;
 
+    // Payment Instructions (moved to top)
+    if (transactions.length === 0) {
+        text += 'Everyone is even! No payments needed.\n\n\n';
+    } else {
+        text += 'Payment Instructions:\n';
+        transactions.forEach((transaction, index) => {
+            text += `${index + 1}. ${transaction.from} pays ${transaction.to} Rs.${transaction.amount}\n`;
+        });
+        text += '\n\n';
+    }
+
     // Player Summary
     text += 'Player Summary:\n';
     appState.players.forEach(player => {
@@ -641,17 +652,7 @@ function generateShareText(transactions) {
         text += `${startChips} → ${finalChips} | Rs.${buyInStr} → Rs.${finalStr} | ${netSign}Rs.${netStr}\n\n`;
     });
 
-    text += `Total Pot: Rs.${totalPot} (${totalChips} chips)\n\n`;
-
-    // Payment Instructions
-    if (transactions.length === 0) {
-        text += 'Everyone is even! No payments needed.\n';
-    } else {
-        text += 'Payment Instructions:\n';
-        transactions.forEach((transaction, index) => {
-            text += `${index + 1}. ${transaction.from} pays ${transaction.to} Rs.${transaction.amount}\n`;
-        });
-    }
+    text += `Total Pot: Rs.${totalPot} (${totalChips} chips)\n`;
 
     return text;
 }
