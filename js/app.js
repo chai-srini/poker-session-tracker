@@ -298,6 +298,36 @@ function renderBuyInScreen() {
 
     html += `
         </div>
+    `;
+
+    // Add Player section (only show if under 9 players)
+    if (appState.players.length < 9) {
+        html += `
+            <div class="add-player-section mb-lg" id="add-player-section">
+                <button id="btn-add-player" class="btn btn-secondary btn-block">
+                    + Add Player
+                </button>
+                <div id="add-player-form" class="add-player-form hidden">
+                    <div class="form-group">
+                        <input
+                            type="text"
+                            id="new-player-name"
+                            class="new-player-input"
+                            placeholder="Enter player name"
+                            maxlength="30"
+                        >
+                        <div id="add-player-error" class="error-message hidden"></div>
+                    </div>
+                    <div class="button-group">
+                        <button id="btn-confirm-add" class="btn btn-success">✓ Add</button>
+                        <button id="btn-cancel-add" class="btn btn-secondary">✗ Cancel</button>
+                    </div>
+                </div>
+            </div>
+        `;
+    }
+
+    html += `
         <button id="btn-to-standing" class="btn btn-success btn-block">
             Proceed to Final Standing
         </button>
@@ -316,6 +346,39 @@ function renderBuyInScreen() {
         renderStandingScreen();
         showScreen('standing');
     });
+
+    // Add Player functionality
+    const btnAddPlayer = document.getElementById('btn-add-player');
+    const btnConfirmAdd = document.getElementById('btn-confirm-add');
+    const btnCancelAdd = document.getElementById('btn-cancel-add');
+    const newPlayerInput = document.getElementById('new-player-name');
+
+    if (btnAddPlayer) {
+        btnAddPlayer.addEventListener('click', showAddPlayerForm);
+    }
+
+    if (btnConfirmAdd) {
+        btnConfirmAdd.addEventListener('click', handleAddPlayer);
+    }
+
+    if (btnCancelAdd) {
+        btnCancelAdd.addEventListener('click', hideAddPlayerForm);
+    }
+
+    if (newPlayerInput) {
+        // Allow Enter key to submit
+        newPlayerInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                handleAddPlayer();
+            }
+        });
+        // Allow Escape key to cancel
+        newPlayerInput.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape') {
+                hideAddPlayerForm();
+            }
+        });
+    }
 
     updateBuyInTotals();
 }
@@ -715,4 +778,83 @@ function handleNewSession() {
     // Return to setup screen
     renderSetupScreen();
     showScreen('setup');
+}
+
+// ===== ADD PLAYER MID-GAME FUNCTIONS =====
+function showAddPlayerForm() {
+    const btnAddPlayer = document.getElementById('btn-add-player');
+    const addPlayerForm = document.getElementById('add-player-form');
+    const newPlayerInput = document.getElementById('new-player-name');
+
+    btnAddPlayer.classList.add('hidden');
+    addPlayerForm.classList.remove('hidden');
+    newPlayerInput.focus();
+}
+
+function hideAddPlayerForm() {
+    const btnAddPlayer = document.getElementById('btn-add-player');
+    const addPlayerForm = document.getElementById('add-player-form');
+    const newPlayerInput = document.getElementById('new-player-name');
+    const errorDiv = document.getElementById('add-player-error');
+
+    addPlayerForm.classList.add('hidden');
+    btnAddPlayer.classList.remove('hidden');
+    newPlayerInput.value = '';
+    errorDiv.classList.add('hidden');
+    errorDiv.textContent = '';
+}
+
+function validateNewPlayerName(name) {
+    const trimmedName = name.trim();
+
+    // Check empty
+    if (trimmedName === '') {
+        return { valid: false, error: 'Name cannot be empty' };
+    }
+
+    // Check max players
+    if (appState.players.length >= 9) {
+        return { valid: false, error: 'Maximum 9 players allowed' };
+    }
+
+    // Check duplicate (case-insensitive)
+    const existingNames = appState.players.map(p => p.name.toLowerCase());
+    if (existingNames.includes(trimmedName.toLowerCase())) {
+        return { valid: false, error: 'This name is already in use' };
+    }
+
+    return { valid: true };
+}
+
+function handleAddPlayer() {
+    const newPlayerInput = document.getElementById('new-player-name');
+    const errorDiv = document.getElementById('add-player-error');
+    const name = newPlayerInput.value;
+
+    // Validate
+    const validation = validateNewPlayerName(name);
+    if (!validation.valid) {
+        errorDiv.textContent = validation.error;
+        errorDiv.classList.remove('hidden');
+        newPlayerInput.focus();
+        return;
+    }
+
+    // Add player to state
+    appState.players.push({
+        name: name.trim(),
+        buyIns: 0,
+        totalBuyIn: 0,
+        finalCash: 0,
+        netPosition: 0
+    });
+
+    // Save state
+    saveSession(appState);
+
+    // Re-render screen to show new player
+    renderBuyInScreen();
+
+    // Show success notification
+    showNotification(`${name.trim()} added to game`);
 }

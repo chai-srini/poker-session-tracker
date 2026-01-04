@@ -541,6 +541,40 @@ input[type="number"]:disabled {
     margin-left: var(--spacing-sm);
 }
 
+/* === Add Player Section === */
+.add-player-section {
+    margin-top: var(--spacing-lg);
+}
+
+.add-player-form {
+    background-color: var(--bg-secondary);
+    padding: var(--spacing-lg);
+    border-radius: var(--radius-md);
+    margin-top: var(--spacing-md);
+}
+
+.add-player-form .form-group {
+    margin-bottom: var(--spacing-md);
+}
+
+.new-player-input {
+    width: 100%;
+    padding: var(--spacing-md);
+    font-size: var(--font-size-base);
+    border: 2px solid var(--border-color);
+    border-radius: var(--radius-md);
+    transition: border-color var(--transition-fast);
+}
+
+.new-player-input:focus {
+    outline: none;
+    border-color: var(--primary-color);
+}
+
+.add-player-form .button-group {
+    gap: var(--spacing-sm);
+}
+
 /* === Responsive Breakpoints === */
 @media (min-width: 768px) {
     .container {
