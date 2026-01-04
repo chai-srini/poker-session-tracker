@@ -344,6 +344,12 @@ input[type="number"]:disabled {
     margin-bottom: var(--spacing-xs);
 }
 
+.chip-info {
+    color: var(--text-secondary);
+    font-size: var(--font-size-sm);
+    margin-left: var(--spacing-xs);
+}
+
 .player-actions {
     display: flex;
     gap: var(--spacing-sm);
@@ -373,6 +379,17 @@ input[type="number"]:disabled {
 
 .standing-card .player-name {
     margin-bottom: var(--spacing-sm);
+}
+
+.final-inr {
+    font-size: var(--font-size-base);
+    color: var(--text-secondary);
+    margin-top: var(--spacing-sm);
+}
+
+.final-inr span {
+    font-weight: var(--font-weight-medium);
+    color: var(--text-primary);
 }
 
 .net-position {

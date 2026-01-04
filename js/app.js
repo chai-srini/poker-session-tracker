@@ -7,6 +7,7 @@
 const appState = {
     currentScreen: 'setup',
     buyInAmount: 200,
+    startingStack: 400,
     players: [],
     // players structure: [{ name: '', buyIns: 0, totalBuyIn: 0, finalCash: 0, netPosition: 0 }]
 };
@@ -24,6 +25,7 @@ function initializeApp() {
         // Restore session
         appState.currentScreen = savedSession.currentScreen;
         appState.buyInAmount = savedSession.buyInAmount || 200;
+        appState.startingStack = savedSession.startingStack || 400;
         appState.players = savedSession.players;
 
         // Show appropriate screen
@@ -108,6 +110,19 @@ function renderSetupScreen() {
 
         <div id="player-names-container" class="mb-lg">
             <!-- Player name inputs will be generated here -->
+        </div>
+
+        <div class="form-group">
+            <label for="chips-per-buyin">Chips per Buy-in</label>
+            <input
+                type="number"
+                id="chips-per-buyin"
+                value="400"
+                min="1"
+                step="1"
+                placeholder="Enter starting stack"
+            >
+            <p class="text-muted">Example: ₹200 buy-in = 400 chips (2:1 ratio)</p>
         </div>
 
         <button id="btn-start-game" class="btn btn-primary btn-block" disabled>
@@ -227,6 +242,9 @@ function handleStartGame() {
         netPosition: 0
     }));
 
+    // Capture starting stack value
+    appState.startingStack = parseInt(document.getElementById('chips-per-buyin').value) || 400;
+
     // Save state
     saveSession(appState);
 
@@ -253,6 +271,7 @@ function renderBuyInScreen() {
 
         <div class="total-pot mb-lg">
             <h3>Total Pot: <span id="total-pot">₹0</span></h3>
+            <p>Total Chips: <span id="total-chips">0</span></p>
         </div>
 
         <div class="player-list mb-lg">
@@ -264,7 +283,10 @@ function renderBuyInScreen() {
                 <div class="player-info">
                     <h4 class="player-name">${player.name}</h4>
                     <p class="player-buyin">Buy-ins: <span id="buyin-count-${index}">${player.buyIns}</span></p>
-                    <p class="player-total">Total: <span id="buyin-total-${index}">₹${player.totalBuyIn}</span></p>
+                    <p class="player-total">
+                        Total: <span id="buyin-total-${index}">₹${player.totalBuyIn}</span>
+                        <span class="chip-info">(<span id="chip-total-${index}">0</span> chips)</span>
+                    </p>
                 </div>
                 <div class="player-actions">
                     <button class="btn btn-icon btn-secondary" data-player="${index}" data-action="decrement">-</button>
@@ -321,17 +343,22 @@ function handleBuyInAction(event) {
 
 function updateBuyInTotals() {
     let totalPot = 0;
+    let totalChips = 0;
 
     appState.players.forEach((player, index) => {
         player.totalBuyIn = player.buyIns * appState.buyInAmount;
+        const playerChips = player.buyIns * appState.startingStack;
         totalPot += player.totalBuyIn;
+        totalChips += playerChips;
 
         // Update UI
         document.getElementById(`buyin-count-${index}`).textContent = player.buyIns;
         document.getElementById(`buyin-total-${index}`).textContent = `₹${player.totalBuyIn}`;
+        document.getElementById(`chip-total-${index}`).textContent = playerChips;
     });
 
     document.getElementById('total-pot').textContent = `₹${totalPot}`;
+    document.getElementById('total-chips').textContent = totalChips;
 
     // Save state
     saveSession(appState);
@@ -341,11 +368,15 @@ function updateBuyInTotals() {
 function renderStandingScreen() {
     const container = document.getElementById('standing-content');
     const totalPot = appState.players.reduce((sum, p) => sum + p.totalBuyIn, 0);
+    const totalChips = appState.players.reduce((sum, p) => sum + (p.buyIns * appState.startingStack), 0);
+    const chipValue = totalPot / totalChips; // INR per chip
 
     let html = `
         <div class="info-box mb-lg">
             <p><strong>Total Pot:</strong> ₹${totalPot}</p>
-            <p class="text-muted">Enter final cash value for each player</p>
+            <p><strong>Total Chips:</strong> ${totalChips}</p>
+            <p><strong>Chip Value:</strong> ₹${chipValue.toFixed(4)} per chip</p>
+            <p class="text-muted">Enter final chip count for each player</p>
         </div>
 
         <div class="validation-status mb-lg" id="validation-status">
@@ -359,20 +390,23 @@ function renderStandingScreen() {
         html += `
             <div class="standing-card">
                 <h4 class="player-name">${player.name}</h4>
-                <p class="text-muted">Buy-in: ₹${player.totalBuyIn}</p>
+                <p class="text-muted">Started with: ${player.buyIns * appState.startingStack} chips (₹${player.totalBuyIn})</p>
                 <div class="form-group">
-                    <label for="final-cash-${index}">Final Cash</label>
+                    <label for="final-chips-${index}">Final Chip Count</label>
                     <input
                         type="number"
-                        id="final-cash-${index}"
-                        class="final-cash-input"
+                        id="final-chips-${index}"
+                        class="final-chips-input"
                         data-player="${index}"
-                        value="${player.finalCash}"
+                        value="0"
                         min="0"
-                        step="0.01"
-                        placeholder="Enter final cash"
+                        step="1"
+                        placeholder="Enter final chips"
                     >
                 </div>
+                <p class="final-inr" id="final-inr-${index}">
+                    Final Value: <span>₹0.00</span>
+                </p>
                 <p class="net-position" id="net-position-${index}">
                     Net: <span>₹0</span>
                 </p>
@@ -390,7 +424,7 @@ function renderStandingScreen() {
     container.innerHTML = html;
 
     // Add event listeners
-    document.querySelectorAll('.final-cash-input').forEach(input => {
+    document.querySelectorAll('.final-chips-input').forEach(input => {
         input.addEventListener('input', validateFinalStanding);
     });
     document.getElementById('btn-calculate-settlement').addEventListener('click', handleCalculateSettlement);
@@ -400,14 +434,24 @@ function renderStandingScreen() {
 
 function validateFinalStanding() {
     const totalPot = appState.players.reduce((sum, p) => sum + p.totalBuyIn, 0);
-    let totalFinalCash = 0;
+    const totalChips = appState.players.reduce((sum, p) => sum + (p.buyIns * appState.startingStack), 0);
+    const chipValue = totalPot / totalChips;
 
-    // Update player final cash values and calculate net positions
+    let totalFinalChips = 0;
+
+    // Update player chip counts and convert to INR
     appState.players.forEach((player, index) => {
-        const input = document.getElementById(`final-cash-${index}`);
-        player.finalCash = parseFloat(input.value) || 0;
+        const input = document.getElementById(`final-chips-${index}`);
+        const finalChips = parseInt(input.value) || 0;
+
+        // Convert chips to INR
+        player.finalCash = finalChips * chipValue;
         player.netPosition = player.finalCash - player.totalBuyIn;
-        totalFinalCash += player.finalCash;
+        totalFinalChips += finalChips;
+
+        // Update final INR display
+        const finalInrSpan = document.querySelector(`#final-inr-${index} span`);
+        finalInrSpan.textContent = `₹${player.finalCash.toFixed(2)}`;
 
         // Update net position display
         const netSpan = document.querySelector(`#net-position-${index} span`);
@@ -416,21 +460,21 @@ function validateFinalStanding() {
         netSpan.className = netValue > 0 ? 'text-success' : netValue < 0 ? 'text-error' : '';
     });
 
-    // Validate totals
-    const difference = Math.abs(totalFinalCash - totalPot);
-    const isValid = difference < 0.01;
+    // Validate chip totals
+    const difference = Math.abs(totalFinalChips - totalChips);
+    const isValid = difference === 0; // Chips must match exactly (no decimal)
 
     const statusDiv = document.getElementById('validation-status');
-    if (difference < 0.01) {
-        statusDiv.innerHTML = '<p class="text-success">✓ Totals match! Ready to calculate settlement.</p>';
+    if (isValid) {
+        statusDiv.innerHTML = '<p class="text-success">✓ Chip count matches! Ready to calculate settlement.</p>';
         statusDiv.className = 'validation-status success mb-lg';
     } else {
-        const diff = totalFinalCash - totalPot;
+        const diff = totalFinalChips - totalChips;
         statusDiv.innerHTML = `
-            <p class="text-error">✗ Totals do not match</p>
-            <p class="text-muted">Total Final Cash: ₹${totalFinalCash.toFixed(2)}</p>
-            <p class="text-muted">Total Pot: ₹${totalPot.toFixed(2)}</p>
-            <p class="text-muted">Difference: ₹${Math.abs(diff).toFixed(2)} ${diff > 0 ? '(too much)' : '(too little)'}</p>
+            <p class="text-error">✗ Chip count does not match</p>
+            <p class="text-muted">Total Final Chips: ${totalFinalChips}</p>
+            <p class="text-muted">Total Chips in Play: ${totalChips}</p>
+            <p class="text-muted">Difference: ${Math.abs(diff)} chips ${diff > 0 ? '(too many)' : '(too few)'}</p>
         `;
         statusDiv.className = 'validation-status error mb-lg';
     }
@@ -457,6 +501,11 @@ function renderSettlementScreen() {
 
     let html = '<div class="settlement-results">';
 
+    // Calculate chip values for display
+    const totalChips = appState.players.reduce((sum, p) => sum + (p.buyIns * appState.startingStack), 0);
+    const totalPotCalc = appState.players.reduce((sum, p) => sum + p.totalBuyIn, 0);
+    const chipValue = totalPotCalc / totalChips;
+
     // Player Summary Section
     html += '<h3 class="mb-md">Player Summary</h3>';
     html += '<div class="player-summary-table mb-xl">';
@@ -465,8 +514,8 @@ function renderSettlementScreen() {
             <thead>
                 <tr>
                     <th>Player</th>
-                    <th>Buy-in</th>
-                    <th>Final</th>
+                    <th>Chips</th>
+                    <th>INR Value</th>
                     <th>Net</th>
                 </tr>
             </thead>
@@ -474,13 +523,15 @@ function renderSettlementScreen() {
     `;
 
     appState.players.forEach(player => {
+        const startChips = player.buyIns * appState.startingStack;
+        const finalChips = Math.round(player.finalCash / chipValue);
         const netClass = player.netPosition > 0 ? 'text-success' : player.netPosition < 0 ? 'text-error' : '';
         const netSymbol = player.netPosition > 0 ? '+' : '';
         html += `
             <tr>
                 <td class="player-name-cell">${player.name}</td>
-                <td>₹${player.totalBuyIn}</td>
-                <td>₹${player.finalCash.toFixed(2)}</td>
+                <td>${startChips} → ${finalChips}</td>
+                <td>₹${player.totalBuyIn} → ₹${player.finalCash.toFixed(2)}</td>
                 <td class="${netClass}">${netSymbol}₹${player.netPosition.toFixed(2)}</td>
             </tr>
         `;
@@ -562,23 +613,31 @@ function handleShareResults(transactions) {
 
 function generateShareText(transactions) {
     const totalPot = appState.players.reduce((sum, p) => sum + p.totalBuyIn, 0);
+    const totalChips = appState.players.reduce((sum, p) => sum + (p.buyIns * appState.startingStack), 0);
+    const chipValue = totalPot / totalChips;
     const date = new Date().toLocaleDateString();
 
     let text = `Poker Night Settlement - ${date}\n\n`;
+    text += `Buy-in: Rs.${appState.buyInAmount} = ${appState.startingStack} chips\n`;
+    text += `Chip Value: Rs.${chipValue.toFixed(4)}/chip\n\n`;
 
     // Player Summary
     text += 'Player Summary:\n';
     text += '----------------------------------------\n';
     appState.players.forEach(player => {
+        const startChips = player.buyIns * appState.startingStack;
+        const finalChips = Math.round(player.finalCash / chipValue);
         const netSymbol = player.netPosition > 0 ? '+' : '';
+
         text += `${player.name}\n`;
+        text += `  Chips: ${startChips} → ${finalChips}\n`;
         text += `  Buy-in: Rs.${player.totalBuyIn}\n`;
         text += `  Final: Rs.${player.finalCash.toFixed(2)}\n`;
         text += `  Net: ${netSymbol}Rs.${player.netPosition.toFixed(2)}\n\n`;
     });
 
     text += '----------------------------------------\n';
-    text += `Total Pot: Rs.${totalPot}\n\n`;
+    text += `Total Pot: Rs.${totalPot} (${totalChips} chips)\n\n`;
 
     // Payment Instructions
     if (transactions.length === 0) {
@@ -645,6 +704,7 @@ function handleNewSession() {
     // Reset state
     appState.currentScreen = 'setup';
     appState.buyInAmount = 200;
+    appState.startingStack = 400;
     appState.players = [];
 
     // Return to setup screen
