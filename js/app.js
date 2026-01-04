@@ -3,6 +3,10 @@
  * Handles state management and UI updates
  */
 
+// App Version - increment this on each deployment to force cache refresh
+const APP_VERSION = '1.0.0';
+const VERSION_KEY = 'poker-tracker-version';
+
 // Application State
 const appState = {
     currentScreen: 'setup',
@@ -22,6 +26,21 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 function initializeApp() {
+    // Check app version and force reload if updated
+    const savedVersion = localStorage.getItem(VERSION_KEY);
+    if (savedVersion && savedVersion !== APP_VERSION) {
+        // Version changed - clear cache and reload
+        localStorage.setItem(VERSION_KEY, APP_VERSION);
+        showNotification('App updated! Reloading...');
+        setTimeout(() => {
+            location.reload(true);
+        }, 1000);
+        return;
+    } else if (!savedVersion) {
+        // First visit - save version
+        localStorage.setItem(VERSION_KEY, APP_VERSION);
+    }
+
     // Try to load saved session
     const savedSession = loadSession();
 
